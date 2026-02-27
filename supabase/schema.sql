@@ -22,21 +22,17 @@ CREATE INDEX IF NOT EXISTS idx_short_urls_code ON short_urls(code);
 CREATE INDEX IF NOT EXISTS idx_short_urls_expires_at ON short_urls(expires_at);
 
 -- =============================================
--- RLS (Row Level Security) ポリシー
--- 認証不要のため、匿名アクセスを許可
+-- RLS (Row Level Security)
+-- Service Role Key を使用するため、anon ユーザーには全操作を拒否
+-- API Routes (サーバーサイド) から Service Role Key でアクセスし、
+-- RLS をバイパスするため、ポリシーは不要
 -- =============================================
 
 ALTER TABLE short_urls ENABLE ROW LEVEL SECURITY;
 ALTER TABLE used_codes ENABLE ROW LEVEL SECURITY;
 
--- short_urls: 全操作を匿名ユーザーに許可
-CREATE POLICY "Allow anonymous select" ON short_urls FOR SELECT USING (true);
-CREATE POLICY "Allow anonymous insert" ON short_urls FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow anonymous delete" ON short_urls FOR DELETE USING (true);
-
--- used_codes: SELECT と INSERT を許可
-CREATE POLICY "Allow anonymous select" ON used_codes FOR SELECT USING (true);
-CREATE POLICY "Allow anonymous insert" ON used_codes FOR INSERT WITH CHECK (true);
+-- anon ユーザーからの直接アクセスを全て拒否（ポリシーなし = 全拒否）
+-- Service Role Key は RLS をバイパスするため、API Routes からは正常に動作する
 
 -- =============================================
 -- 期限切れURL自動削除 (pg_cron)
