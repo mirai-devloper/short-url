@@ -34,13 +34,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ユニークなコードを生成（used_codesと衝突しないまで繰り返す）
+    // データベースのレコード数に基づいてコード長を決定（5〜8文字）
+    const { count } = await supabase
+      .from('used_codes')
+      .select('*', { count: 'exact', head: true });
+
+    const totalCodes = count ?? 0;
+    let codeLength: number;
+    if (totalCodes < 100_000) {
+      codeLength = 5;
+    } else if (totalCodes < 1_000_000) {
+      codeLength = 6;
+    } else if (totalCodes < 10_000_000) {
+      codeLength = 7;
+    } else {
+      codeLength = 8;
+    }
+
+    // ユニークなコードを生成（衝突時はコード長を伸ばしてリトライ）
     let code: string;
     let attempts = 0;
     const maxAttempts = 10;
 
     do {
-      code = nanoid(8);
+      const currentLength = Math.min(codeLength + Math.floor(attempts / 3), 8);
+      code = nanoid(currentLength);
       attempts++;
 
       // used_codesテーブルで重複チェック
